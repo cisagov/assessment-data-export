@@ -65,7 +65,7 @@ def prep_and_import_csv(db):
         for o in (19, 40, 42):
             try:
                 row[o] = int(float(row[o]))
-            except:
+            except ValueError:
                 continue
 
         # 'Summary','Status','Created','Updated','Appendix A Date',
