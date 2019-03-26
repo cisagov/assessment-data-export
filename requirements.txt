@@ -1,0 +1,5 @@
+# The following line refers to a private repository, so it requires a
+# GitHub token for installation
+# https://github.com/jsf9k/cyhy-core/tarball/develop
+dateutil
+docopt
