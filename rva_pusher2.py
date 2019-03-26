@@ -133,6 +133,15 @@ def prep_and_import_csv(db):
             })
             domains_processed += 1
         except:
+            # It seems awfully presumptuous to assume the problem is
+            # that the key is already in the database, since you're
+            # literally catching any possible exception here.
+            #
+            # I suggest that you only catch the specific exception
+            # that indicates a duplicate key here.  I would change it
+            # myself, but I don't know what exception that is.
+            #
+            # jsf9k
             print(row[0] + ' is already a key in the DB')
 
     print('Successfully imported {} documents to "{}" database on {}'.format(
