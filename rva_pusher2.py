@@ -14,12 +14,9 @@ Options:
 
 from docopt import docopt
 import csv
-import os
 import re
 from cyhy.db import database
-from cyhy.util import util
 import subprocess
-from datetime import datetime
 import dateutil.parser
 
 
