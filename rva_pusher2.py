@@ -12,12 +12,13 @@ Options:
   -s SECTION --section=SECTION   Configuration section to use.
 '''
 
-from docopt import docopt
 import csv
 import re
-from cyhy.db import database
 import subprocess
+
+from cyhy.db import database
 import dateutil.parser
+from docopt import docopt
 
 
 FMT = '%m/%d/%y %H:%M'
