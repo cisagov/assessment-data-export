@@ -1,5 +1,3 @@
-# The following line refers to a private repository, so it requires a
-# GitHub token for installation
-# https://github.com/jsf9k/cyhy-core/tarball/develop
-dateutil
 docopt
+python-dateutil
+https://github.com/cisagov/mongo-db-from-config/tarball/develop
