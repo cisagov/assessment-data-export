@@ -2,21 +2,20 @@
 '''Translate exported data from JIRA to MongoDB.
 
 Usage:
-  rva_data_manager.py [--section SECTION] [FILTER]
+  rva_data_manager.py DB_CONFIG_FILE [FILTER]
   rva_data_manager.py (-h | --help)
   rva_data_manager.py --version
 
 Options:
   -h --help                      Show this screen.
   --version                      Show version.
-  -s SECTION --section=SECTION   Configuration section to use.
 '''
 
 import csv
 import re
 import subprocess
 
-from cyhy.db import database
+from mongo_db_from_config import db_from_config
 import dateutil.parser
 from docopt import docopt
 
@@ -154,7 +153,7 @@ def main():
     global __doc__
     __doc__ = re.sub('COMMAND_NAME', __file__, __doc__)
     args = docopt(__doc__, version='v0.0.1')
-    db = database.db_from_config(args['--section'])
+    db = db_from_config(args['DB_CONFIG_FILE'])
 
     grab_csv_from_jira(args['FILTER'])
     prep_and_import_csv(db)
