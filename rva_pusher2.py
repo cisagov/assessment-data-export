@@ -26,7 +26,7 @@ from ConfigParser import SafeConfigParser
 import os
 
 JIRA_FILE = 'assessment-data.xml'
-BUCKET_NAME = 'assessment-export-data-production'
+BUCKET_NAME = 'assessment-data-production'
 
 # pull XML data from JIRA
 def retrieve_data(filter):
@@ -47,8 +47,12 @@ def convert_xml_json():
     data = []
     for assessment in assessment_data:
         item = {'id': 'placeholder'}
+        for field in ('summary', 'created', 'updated', 'status'):
+            item[field] = assessment[field].get('$')
+        
         for node in assessment['customfields']['customfield']:
             key = node.get('customfieldname').get('$')
+            
             try:
                 value = node.get('customfieldvalues').get('customfieldvalue').get('$')
             except:
@@ -59,6 +63,14 @@ def convert_xml_json():
             
             if value != None:    
                 item[key] = value
+            
+            if key == 'Election':
+                if value == 'Yes':
+                    item['Election'] = True
+                elif value == 'No':
+                    item['Election'] = False
+                else:
+                    item['Election'] = None
                
             if key == 'POC Name' or key == 'POC Email' or key == 'POC Phone':
                 item[key] = None
