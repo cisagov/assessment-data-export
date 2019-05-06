@@ -15,7 +15,6 @@ Usage:
 Options:
   -h --help                      Show this screen.
   --version                      Show version.
-  -s SECTION --section=SECTION   Configuration section to use.
 """
 
 # Standard libraries
@@ -113,9 +112,6 @@ def convert_xml_json():
             except:
                 pass
         data.append(item)
-
-    #print(json.dumps(data, indent=4, sort_keys=True))
-    #import IPython; IPython.embed() #<<< BREAKPOINT >>>
 
     assessment_json = open('assessment-data.json', 'w')
     assessment_json.write(json.dumps(data))
