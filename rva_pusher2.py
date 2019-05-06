@@ -27,6 +27,7 @@ import os
 
 JIRA_FILE = 'assessment-data.xml'
 BUCKET_NAME = 'assessment-data-production'
+OPERATOR_LIST = ['Operator01', 'Operator02', 'Operator03', 'Operator04', 'Operator05', 'Operator06', 'Operator07', 'Operator08', 'Operator09']
 
 # pull XML data from JIRA
 def retrieve_data(filter):
@@ -49,6 +50,11 @@ def convert_xml_json():
         item = {'id': 'placeholder'}
         for field in ('summary', 'created', 'updated', 'status'):
             item[field] = assessment[field].get('$')
+        
+        try:
+            item['resolved'] = assessment['resolved'].get('$')
+        except:
+            pass
         
         for node in assessment['customfields']['customfield']:
             key = node.get('customfieldname').get('$')
@@ -75,6 +81,32 @@ def convert_xml_json():
             if key == 'POC Name' or key == 'POC Email' or key == 'POC Phone':
                 item[key] = None
                 
+            if key == 'Requested Services':
+                try:
+                    i = 0
+                    services_array = []
+                    while i < len(node.get('customfieldvalues').get('customfieldvalue')):
+                        services_array.append(node.get('customfieldvalues').get('customfieldvalue')[i].get('$'))
+                        i=i+1
+                    item[key] = services_array
+                except:
+                    pass
+         
+        operator_array = []            
+        for field in OPERATOR_LIST:
+            try:
+                if item[field]:
+                    operator_array.append(item[field])
+                    item.pop(key, None)
+            except:
+                pass
+        item['Operators'] = operator_array
+        
+        for i in OPERATOR_LIST:
+            try:
+                del item[i] 
+            except:
+                pass
         data.append(item)
     
     #print(json.dumps(data, indent=4, sort_keys=True))   
