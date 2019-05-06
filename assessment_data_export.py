@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""A tool for exporting assessment data.
+"""assessment_data_export: A tool for exporting assessment data.
 
 The source of the assessment data is Jira.
 The destination of the data is a JSON file stored in an AWS S3 bucket.
@@ -8,9 +8,9 @@ The destination S3 bucket can be created via:
   https://github.com/cisagov/assessment-data-import-terraform
 
 Usage:
-  jira_pusher.py [FILTER]
-  jira_pusher.py (-h | --help)
-  jira_pusher.py --version
+  assessment_data_export.py [FILTER]
+  assessment_data_export.py (-h | --help)
+  assessment_data_export.py --version
 
 Options:
   -h --help                      Show this screen.
