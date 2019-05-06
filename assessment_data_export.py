@@ -8,18 +8,29 @@ The destination S3 bucket can be created via:
   https://github.com/cisagov/assessment-data-import-terraform
 
 Usage:
-  assessment_data_export.py [FILTER]
+  assessment_data_export.py --jira-credentials-file=FILE --jira-filter=FILTER --s3-bucket=BUCKET --output-filename=FILENAME
   assessment_data_export.py (-h | --help)
   assessment_data_export.py --version
 
 Options:
-  -h --help                      Show this screen.
-  --version                      Show version.
+  -h --help                     Show this message.
+  --jira-credentials-file=FILE  The text file containing the username and
+                                password for the Jira account with access to
+                                the specified Jira FILTER.
+                                File format:
+                                username
+                                password
+  --jira-filter=FILTER          The ID of the Jira filter that produces the
+                                desired XML assessment data output.
+  --s3-bucket=BUCKET            The AWS S3 bucket where the exported JSON
+                                assessment data will be copied to.
+  --output-filename=FILENAME    The name of the output JSON file that will be
+                                created in the S3 bucket above.
+  --version                     Show version.
 """
 
 # Standard libraries
 import json
-import os
 import re
 import subprocess
 
@@ -29,23 +40,25 @@ from docopt import docopt
 from xmljson import badgerfish as bf
 from xml.etree import ElementTree
 
-JIRA_FILE = 'assessment-data.xml'
-BUCKET_NAME = 'assessment-data-production'
+JIRA_EXPORT_XML_FILE = 'assessment-data.xml'
 OPERATOR_LIST = ['Operator01', 'Operator02', 'Operator03', 'Operator04', 'Operator05', 'Operator06', 'Operator07', 'Operator08', 'Operator09']
 
-# pull XML data from JIRA
-def retrieve_data(filter):
-    f = open('./account.txt','r')
+
+def retrieve_data(jira_credentials_file, jira_filter, xml_filename):
+    # Grab Jira credentials from jira_credentials_file
+    f = open(jira_credentials_file, 'r')
     lines = f.readlines()
     username = lines[0].rstrip()
     password = lines[1].rstrip()
     f.close()
 
-    subprocess.call([f"curl -k -u{username}:{password} https://jira.ncats.cyber.dhs.gov/sr/jira.issueviews:searchrequest-xml/{filter}/SearchRequest-{filter}.xml -o {JIRA_FILE}"], shell=True)
+    # Export XML data from Jira
+    subprocess.call([f"curl -k -u{username}:{password} https://jira.ncats.cyber.dhs.gov/sr/jira.issueviews:searchrequest-xml/{jira_filter}/SearchRequest-{jira_filter}.xml -o {xml_filename}"], shell=True)
+
 
 # translate the XML into a JSON file
-def convert_xml_json():
-    xml_string = open('assessment-data.xml','r')
+def convert_xml_json(xml_filename, output_filename):
+    xml_string = open(xml_filename, 'r')
     data = bf.data(ElementTree.fromstring(xml_string.read()))
     assessment_data = data['rss']['channel']['item']
 
@@ -113,35 +126,32 @@ def convert_xml_json():
                 pass
         data.append(item)
 
-    assessment_json = open('assessment-data.json', 'w')
+    assessment_json = open(output_filename, 'w')
     assessment_json.write(json.dumps(data))
     assessment_json.close()
 
+
 # Drop it into the S3 bucket
-def update_bucket(bucket_name, local_file, remote_file_name):
+def update_bucket(bucket_name, output_filename):
     # update the s3 bucket with the new contents
     s3 = boto3.client('s3')
-    s3.upload_file(local_file, bucket_name, remote_file_name)
+    s3.upload_file(output_filename, bucket_name, output_filename)
 
     print('\n\nSuccessfully uploaded JSON to S3 bucket')
+
 
 def main():
     global __doc__
     __doc__ = re.sub('COMMAND_NAME', __file__, __doc__)
     args = docopt(__doc__, version='v0.0.1')
 
-    retrieve_data(args['FILTER'])
-    convert_xml_json()
+    retrieve_data(
+        args["--jira-credentials-file"],
+        args["--jira-filter"],
+        JIRA_EXPORT_XML_FILE)
+    convert_xml_json(JIRA_EXPORT_XML_FILE, args["--output-filename"])
+    update_bucket(args["--s3-bucket"], args["--output-filename"])
 
-    #OUTPUT_DIR = config.get('DEFAULT', 'OUTPUT_DIR')
-    # Check if OUTPUT_DIR exists; if not, bail out
-    #if not os.path.exists(OUTPUT_DIR):
-        #print('''ERROR: Output directory '{!s}' does not exist - exiting!'''.format(OUTPUT_DIR))
-        #sys.exit(1)
-
-    file_name = 'assessment-data.json'
-    #full_path_filename = os.path.join(OUTPUT_DIR, file_name)
-    update_bucket(BUCKET_NAME, os.path.join('./assessment-data.json'), 'remote-assessment-data.json')
 
 if __name__=='__main__':
     main()
