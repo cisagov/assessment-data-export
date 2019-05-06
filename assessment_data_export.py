@@ -41,7 +41,7 @@ def retrieve_data(filter):
     password = lines[1].rstrip()
     f.close()
 
-    subprocess.call(['curl -k {}:{} https://jira.ncats.cyber.dhs.gov/sr/jira.issueviews:searchrequest-xml/{}/SearchRequest-{}.xml -o {}'.format(username,password,filter,filter,JIRA_FILE)], shell=True)
+    subprocess.call(['curl -k -u{}:{} https://jira.ncats.cyber.dhs.gov/sr/jira.issueviews:searchrequest-xml/{}/SearchRequest-{}.xml -o {}'.format(username,password,filter,filter,JIRA_FILE)], shell=True)
 
 # translate the XML into a JSON file
 def convert_xml_json():
