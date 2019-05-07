@@ -31,8 +31,10 @@ Options:
 
 # Standard libraries
 import json
+import os
 import re
 import subprocess
+import tempfile
 
 # Third-party libraries (install with pip)
 import boto3
@@ -40,7 +42,6 @@ from docopt import docopt
 from xmljson import badgerfish as bf
 from xml.etree import ElementTree
 
-JIRA_EXPORT_XML_FILE = 'assessment-data.xml'
 OPERATOR_LIST = ['Operator01', 'Operator02', 'Operator03', 'Operator04', 'Operator05', 'Operator06', 'Operator07', 'Operator08', 'Operator09']
 
 
@@ -145,12 +146,20 @@ def main():
     __doc__ = re.sub('COMMAND_NAME', __file__, __doc__)
     args = docopt(__doc__, version='v0.0.1')
 
-    retrieve_data(
-        args["--jira-credentials-file"],
-        args["--jira-filter"],
-        JIRA_EXPORT_XML_FILE)
-    convert_xml_json(JIRA_EXPORT_XML_FILE, args["--output-filename"])
-    update_bucket(args["--s3-bucket"], args["--output-filename"])
+    # Securely create a temporary file to store the XML data in
+    temp_xml_file_descriptor, temp_xml_filepath = tempfile.mkstemp()
+
+    try:
+        retrieve_data(
+            args["--jira-credentials-file"],
+            args["--jira-filter"],
+            temp_xml_filepath)
+        convert_xml_json(temp_xml_filepath, args["--output-filename"])
+        update_bucket(args["--s3-bucket"], args["--output-filename"])
+    finally:
+        # Delete local temp XML data file regardless of whether or not
+        # any exceptions were thrown in the try block above
+        os.remove(f"{temp_xml_filepath}")
 
 
 if __name__=='__main__':
