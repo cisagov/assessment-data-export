@@ -86,21 +86,27 @@ def export_jira_data(jira_base_url, jira_credentials_file, jira_filter, xml_file
     jira_password = lines[1].rstrip()
     f.close()
 
-    jira_url = f"{jira_base_url}/sr/jira.issueviews:searchrequest-xml/" \
+    jira_url = (
+        f"{jira_base_url}/sr/jira.issueviews:searchrequest-xml/"
         f"{jira_filter}/SearchRequest-{jira_filter}.xml"
+    )
 
     # Export XML data from Jira
     try:
-        response = requests.get(jira_url,
-                                auth=(jira_username, jira_password),
-                                verify=False)
+        response = requests.get(
+            jira_url, auth=(jira_username, jira_password), verify=False
+        )
 
         with open(xml_filename, "w") as xml_output:
             xml_output.write(response.text)
-        logging.info(f"Successfully downloaded assessment XML data from {jira_base_url}")
+        logging.info(
+            f"Successfully downloaded assessment XML data from {jira_base_url}"
+        )
         return True
     except (requests.exceptions.RequestException, Exception) as err:
-        logging.critical(f"Error downloading assessment XML data from {jira_base_url}\n\n{err}\n")
+        logging.critical(
+            f"Error downloading assessment XML data from {jira_base_url}\n\n{err}\n"
+        )
         return False
 
 
@@ -132,10 +138,7 @@ def convert_xml_to_json(xml_filename, output_filename):
 
     # Iterate through XML data and build JSON data
     for assessment in assessment_data:
-        assessment_json = {
-            'Requested Services': [],
-            'Operators': []
-        }
+        assessment_json = {"Requested Services": [], "Operators": []}
 
         # Grab data from key required fields
         for field in ("summary", "created", "updated", "status"):
@@ -149,7 +152,8 @@ def convert_xml_to_json(xml_filename, output_filename):
         for node in assessment["customfields"]["customfield"]:
             key = node.get("customfieldname").get("$")
             custom_field_values = node.get("customfieldvalues", {}).get(
-                "customfieldvalue")
+                "customfieldvalue"
+            )
 
             # Make the Assessment ID our primary id
             if key == "Asmt ID":
@@ -170,19 +174,20 @@ def convert_xml_to_json(xml_filename, output_filename):
             elif key == "Requested Services":
                 if type(custom_field_values) == OrderedDict:
                     # There's only one requested service
-                    assessment_json['Requested Services'].append(
-                        custom_field_values.get("$"))
+                    assessment_json["Requested Services"].append(
+                        custom_field_values.get("$")
+                    )
                 elif type(custom_field_values) == list:
                     # There are multiple requested services
                     for service in custom_field_values:
-                        assessment_json['Requested Services'].append(service.get("$"))
+                        assessment_json["Requested Services"].append(service.get("$"))
             # Build the list of Operators
             elif operator_regex.match(key):
-                assessment_json["Operators"].append(custom_field_values.get('$'))
+                assessment_json["Operators"].append(custom_field_values.get("$"))
             else:
                 try:
                     # Grab as many other custom fields as we can
-                    assessment_json[key] = custom_field_values.get('$')
+                    assessment_json[key] = custom_field_values.get("$")
                 except AttributeError:
                     # If we want any fields that end up here, we will have
                     # to add elif clauses for them above
@@ -193,7 +198,9 @@ def convert_xml_to_json(xml_filename, output_filename):
     assessment_json_file = open(output_filename, "w")
     assessment_json_file.write(json.dumps(all_assessments_json))
     assessment_json_file.close()
-    logging.info(f"Successfully converted assessment XML to JSON and wrote {output_filename}")
+    logging.info(
+        f"Successfully converted assessment XML to JSON and wrote {output_filename}"
+    )
     return True
 
 
@@ -251,7 +258,7 @@ def main():
             args["--jira-base-url"],
             args["--jira-credentials-file"],
             args["--jira-filter"],
-            temp_xml_filepath
+            temp_xml_filepath,
         ):
             logging.critical("Exiting here!")
             return False
