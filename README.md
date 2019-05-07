@@ -1,4 +1,4 @@
-# assessment-data-export 🚀
+# assessment-data-export 🚀 #
 
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/cisagov/assessment-data-export.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/cisagov/assessment-data-export/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/cisagov/assessment-data-export.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/cisagov/assessment-data-export/context:python)
@@ -24,7 +24,9 @@ my_jira_password
 Issue the following command to run the script:
 
 ```bash
-./assessment_data_export.py --jira-base-url=https://my-jira-server --jira-credentials-file=my_jira_creds.txt --jira-filter=12345 --s3-bucket=my-bucket --output-filename=assessment-data.json
+./assessment_data_export.py --jira-base-url=https://my-jira-server
+--jira-credentials-file=my_jira_creds.txt --jira-filter=12345
+--s3-bucket=my-bucket --output-filename=assessment-data.json
 ```
 
 To get help information on the command line arguments, run:
