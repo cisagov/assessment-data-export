@@ -81,7 +81,7 @@ commands:
 cd assessment-data-export
 pyenv virtualenv <python_version_to_use> assessment-data-export
 pyenv local assessment-data-export
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 ```
 
 #### Installing the pre-commit hook ####
