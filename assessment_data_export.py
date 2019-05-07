@@ -45,7 +45,30 @@ from xml.etree import ElementTree
 OPERATOR_LIST = ['Operator01', 'Operator02', 'Operator03', 'Operator04', 'Operator05', 'Operator06', 'Operator07', 'Operator08', 'Operator09']
 
 
-def retrieve_data(jira_credentials_file, jira_filter, xml_filename):
+def export_jira_data(jira_credentials_file, jira_filter, xml_filename):
+    """Export XML assessment data from Jira to a file.
+
+    Parameters
+    ----------
+    jira_credentials_file : str
+        The text file containing the username and password for the Jira
+        account with access to the specified Jira FILTER.
+        File format:
+        username
+        password
+
+    jira_filter : str
+        The ID of the Jira filter that produces the desired XML assessment
+        data output.
+
+    xml_filename : str
+        The name of the file to store the XML assessment data in.
+
+    Returns
+    -------
+    None
+
+    """
     # Grab Jira credentials from jira_credentials_file
     f = open(jira_credentials_file, 'r')
     lines = f.readlines()
@@ -57,12 +80,28 @@ def retrieve_data(jira_credentials_file, jira_filter, xml_filename):
     subprocess.call([f"curl -k -u{username}:{password} https://jira.ncats.cyber.dhs.gov/sr/jira.issueviews:searchrequest-xml/{jira_filter}/SearchRequest-{jira_filter}.xml -o {xml_filename}"], shell=True)
 
 
-# translate the XML into a JSON file
-def convert_xml_json(xml_filename, output_filename):
+def convert_xml_to_json(xml_filename, output_filename):
+    """Create a JSON file based on XML assessment data.
+
+    Parameters
+    ----------
+    xml_filename : str
+        The name of the source XML assessment data file.
+
+    output_filename : str
+        The name of the target JSON assessment data file.
+
+    Returns
+    -------
+    None
+
+    """
+    # Open XML file and grab the data
     xml_string = open(xml_filename, 'r')
     data = bf.data(ElementTree.fromstring(xml_string.read()))
     assessment_data = data['rss']['channel']['item']
 
+    # Iterate through XML data and build JSON data
     data = []
     for assessment in assessment_data:
         item = {'id': 'placeholder'}
@@ -127,21 +166,40 @@ def convert_xml_json(xml_filename, output_filename):
                 pass
         data.append(item)
 
+    # Write JSON data to output_filename
     assessment_json = open(output_filename, 'w')
     assessment_json.write(json.dumps(data))
     assessment_json.close()
 
 
-# Drop it into the S3 bucket
-def update_bucket(bucket_name, output_filename):
-    # update the s3 bucket with the new contents
+def upload_to_s3(bucket_name, output_filename):
+    """Upload a file to an AWS S3 bucket.
+
+    Parameters
+    ----------
+    bucket_name : str
+        The name of the target S3 bucket.
+
+    output_filename : str
+        The name of the file to upload and also the name of the object to
+        create in the target S3 bucket.
+
+    Returns
+    -------
+    None
+
+    """
+    # Boto3 client for S3
     s3 = boto3.client('s3')
+
+    # Upload file to S3 bucket
     s3.upload_file(output_filename, bucket_name, output_filename)
 
     print('\n\nSuccessfully uploaded JSON to S3 bucket')
 
 
 def main():
+    """Call the functions that export data from Jira and upload it to S3."""
     global __doc__
     __doc__ = re.sub('COMMAND_NAME', __file__, __doc__)
     args = docopt(__doc__, version='v0.0.1')
@@ -150,12 +208,12 @@ def main():
     temp_xml_file_descriptor, temp_xml_filepath = tempfile.mkstemp()
 
     try:
-        retrieve_data(
+        export_jira_data(
             args["--jira-credentials-file"],
             args["--jira-filter"],
             temp_xml_filepath)
-        convert_xml_json(temp_xml_filepath, args["--output-filename"])
-        update_bucket(args["--s3-bucket"], args["--output-filename"])
+        convert_xml_to_json(temp_xml_filepath, args["--output-filename"])
+        upload_to_s3(args["--s3-bucket"], args["--output-filename"])
     finally:
         # Delete local temp XML data file regardless of whether or not
         # any exceptions were thrown in the try block above
