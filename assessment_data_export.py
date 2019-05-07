@@ -8,7 +8,7 @@ The destination S3 bucket can be created via:
   https://github.com/cisagov/assessment-data-import-terraform
 
 Usage:
-  assessment_data_export.py --jira-credentials-file=FILE --jira-filter=FILTER --s3-bucket=BUCKET --output-filename=FILENAME
+  assessment_data_export.py --jira-credentials-file=FILE --jira-filter=FILTER --s3-bucket=BUCKET --output-filename=FILENAME [--log-level=LEVEL]
   assessment_data_export.py (-h | --help)
   assessment_data_export.py --version
 
@@ -27,11 +27,16 @@ Options:
   --output-filename=FILENAME    The name of the output JSON file that will be
                                 created in the S3 bucket above.
   --version                     Show version.
+  --log-level=LEVEL             If specified, then the log level will be set to
+                                the specified value.  Valid values are "debug",
+                                "info", "warning", "error", and "critical".
+                                [default: warning]
 """
 
 # Standard libraries
 from collections import OrderedDict
 import json
+import logging
 import os
 import re
 import subprocess
@@ -199,7 +204,7 @@ def upload_to_s3(bucket_name, output_filename):
     # Upload file to S3 bucket
     s3.upload_file(output_filename, bucket_name, output_filename)
 
-    print("\n\nSuccessfully uploaded JSON to S3 bucket")
+    logging.info(f"Successfully uploaded {output_filename} to S3 bucket {bucket_name}")
 
 
 def main():
@@ -207,6 +212,19 @@ def main():
     global __doc__
     __doc__ = re.sub("COMMAND_NAME", __file__, __doc__)
     args = docopt(__doc__, version="v0.0.1")
+
+    # Set up logging
+    log_level = args["--log-level"]
+    try:
+        logging.basicConfig(
+            format="%(asctime)-15s %(levelname)s %(message)s", level=log_level.upper()
+        )
+    except ValueError:
+        logging.critical(
+            f'"{log_level}" is not a valid logging level.  Possible values '
+            "are debug, info, warning, error, and critical."
+        )
+        return 1
 
     # Securely create a temporary file to store the XML data in
     temp_xml_file_descriptor, temp_xml_filepath = tempfile.mkstemp()
@@ -221,6 +239,9 @@ def main():
         # Delete local temp XML data file regardless of whether or not
         # any exceptions were thrown in the try block above
         os.remove(f"{temp_xml_filepath}")
+
+        # Stop logging and clean up
+        logging.shutdown()
 
 
 if __name__ == "__main__":
