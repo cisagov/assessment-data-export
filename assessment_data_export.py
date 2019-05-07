@@ -8,12 +8,14 @@ The destination S3 bucket can be created via:
   https://github.com/cisagov/assessment-data-import-terraform
 
 Usage:
-  assessment_data_export.py --jira-credentials-file=FILE --jira-filter=FILTER --s3-bucket=BUCKET --output-filename=FILENAME [--log-level=LEVEL]
+  assessment_data_export.py --jira-base-url=URL --jira-credentials-file=FILE --jira-filter=FILTER --s3-bucket=BUCKET --output-filename=FILENAME [--log-level=LEVEL]
   assessment_data_export.py (-h | --help)
   assessment_data_export.py --version
 
 Options:
   -h --help                     Show this message.
+  --jira-base-url=URL           The base URL of the Jira server that houses
+                                the assessment data.
   --jira-credentials-file=FILE  The text file containing the username and
                                 password for the Jira account with access to
                                 the specified Jira FILTER.
@@ -39,21 +41,24 @@ import json
 import logging
 import os
 import re
-import subprocess
 import tempfile
 from xml.etree import ElementTree
 
 # Third-party libraries (install with pip)
 import boto3
 from docopt import docopt
+import requests
 from xmljson import badgerfish as bf
 
 
-def export_jira_data(jira_credentials_file, jira_filter, xml_filename):
+def export_jira_data(jira_base_url, jira_credentials_file, jira_filter, xml_filename):
     """Export XML assessment data from Jira to a file.
 
     Parameters
     ----------
+    jira_base_url: str
+        The base URL of the Jira server that houses the assessment data.
+
     jira_credentials_file : str
         The text file containing the username and password for the Jira
         account with access to the specified Jira FILTER.
@@ -70,25 +75,33 @@ def export_jira_data(jira_credentials_file, jira_filter, xml_filename):
 
     Returns
     -------
-    None
+    bool : Returns a boolean indicating if the assessment data export was
+    successful.
 
     """
     # Grab Jira credentials from jira_credentials_file
     f = open(jira_credentials_file, "r")
     lines = f.readlines()
-    username = lines[0].rstrip()
-    password = lines[1].rstrip()
+    jira_username = lines[0].rstrip()
+    jira_password = lines[1].rstrip()
     f.close()
 
+    jira_url = f"{jira_base_url}/sr/jira.issueviews:searchrequest-xml/" \
+        f"{jira_filter}/SearchRequest-{jira_filter}.xml"
+
     # Export XML data from Jira
-    subprocess.call(
-        [
-            f"curl -k -u{username}:{password} https://jira.ncats.cyber.dhs.gov"
-            f"/sr/jira.issueviews:searchrequest-xml/{jira_filter}/"
-            f"SearchRequest-{jira_filter}.xml -o {xml_filename}"
-        ],
-        shell=True,
-    )
+    try:
+        response = requests.get(jira_url,
+                                auth=(jira_username, jira_password),
+                                verify=False)
+
+        with open(xml_filename, "w") as xml_output:
+            xml_output.write(response.text)
+        logging.info(f"Successfully downloaded assessment XML data from {jira_base_url}")
+        return True
+    except (requests.exceptions.RequestException, Exception) as err:
+        logging.critical(f"Error downloading assessment XML data from {jira_base_url}\n\n{err}\n")
+        return False
 
 
 def convert_xml_to_json(xml_filename, output_filename):
@@ -104,7 +117,8 @@ def convert_xml_to_json(xml_filename, output_filename):
 
     Returns
     -------
-    None
+    bool : Returns a boolean indicating if the data conversion to JSON was
+    successful.
 
     """
     # Open XML file and grab the data
@@ -179,6 +193,8 @@ def convert_xml_to_json(xml_filename, output_filename):
     assessment_json_file = open(output_filename, "w")
     assessment_json_file.write(json.dumps(all_assessments_json))
     assessment_json_file.close()
+    logging.info(f"Successfully converted assessment XML to JSON and wrote {output_filename}")
+    return True
 
 
 def upload_to_s3(bucket_name, output_filename):
@@ -195,7 +211,7 @@ def upload_to_s3(bucket_name, output_filename):
 
     Returns
     -------
-    None
+    bool : Returns a boolean indicating if the S3 upload was successful.
 
     """
     # Boto3 client for S3
@@ -205,6 +221,7 @@ def upload_to_s3(bucket_name, output_filename):
     s3.upload_file(output_filename, bucket_name, output_filename)
 
     logging.info(f"Successfully uploaded {output_filename} to S3 bucket {bucket_name}")
+    return True
 
 
 def main():
@@ -230,11 +247,21 @@ def main():
     temp_xml_file_descriptor, temp_xml_filepath = tempfile.mkstemp()
 
     try:
-        export_jira_data(
-            args["--jira-credentials-file"], args["--jira-filter"], temp_xml_filepath
-        )
-        convert_xml_to_json(temp_xml_filepath, args["--output-filename"])
-        upload_to_s3(args["--s3-bucket"], args["--output-filename"])
+        if not export_jira_data(
+            args["--jira-base-url"],
+            args["--jira-credentials-file"],
+            args["--jira-filter"],
+            temp_xml_filepath
+        ):
+            logging.critical("Exiting here!")
+            return False
+        if not convert_xml_to_json(temp_xml_filepath, args["--output-filename"]):
+            logging.critical("Exiting here!")
+            return False
+        if not upload_to_s3(args["--s3-bucket"], args["--output-filename"]):
+            logging.critical("Exiting here!")
+            return False
+        return True
     finally:
         # Delete local temp XML data file regardless of whether or not
         # any exceptions were thrown in the try block above
