@@ -42,7 +42,17 @@ from docopt import docopt
 from xmljson import badgerfish as bf
 from xml.etree import ElementTree
 
-OPERATOR_LIST = ['Operator01', 'Operator02', 'Operator03', 'Operator04', 'Operator05', 'Operator06', 'Operator07', 'Operator08', 'Operator09']
+OPERATOR_LIST = [
+    "Operator01",
+    "Operator02",
+    "Operator03",
+    "Operator04",
+    "Operator05",
+    "Operator06",
+    "Operator07",
+    "Operator08",
+    "Operator09",
+]
 
 
 def export_jira_data(jira_credentials_file, jira_filter, xml_filename):
@@ -70,14 +80,21 @@ def export_jira_data(jira_credentials_file, jira_filter, xml_filename):
 
     """
     # Grab Jira credentials from jira_credentials_file
-    f = open(jira_credentials_file, 'r')
+    f = open(jira_credentials_file, "r")
     lines = f.readlines()
     username = lines[0].rstrip()
     password = lines[1].rstrip()
     f.close()
 
     # Export XML data from Jira
-    subprocess.call([f"curl -k -u{username}:{password} https://jira.ncats.cyber.dhs.gov/sr/jira.issueviews:searchrequest-xml/{jira_filter}/SearchRequest-{jira_filter}.xml -o {xml_filename}"], shell=True)
+    subprocess.call(
+        [
+            f"curl -k -u{username}:{password} https://jira.ncats.cyber.dhs.gov"
+            f"/sr/jira.issueviews:searchrequest-xml/{jira_filter}/"
+            f"SearchRequest-{jira_filter}.xml -o {xml_filename}"
+        ],
+        shell=True,
+    )
 
 
 def convert_xml_to_json(xml_filename, output_filename):
@@ -97,54 +114,61 @@ def convert_xml_to_json(xml_filename, output_filename):
 
     """
     # Open XML file and grab the data
-    xml_string = open(xml_filename, 'r')
+    xml_string = open(xml_filename, "r")
     data = bf.data(ElementTree.fromstring(xml_string.read()))
-    assessment_data = data['rss']['channel']['item']
+    assessment_data = data["rss"]["channel"]["item"]
 
     # Iterate through XML data and build JSON data
     data = []
     for assessment in assessment_data:
-        item = {'id': 'placeholder'}
-        for field in ('summary', 'created', 'updated', 'status'):
-            item[field] = assessment[field].get('$')
+        item = {"id": "placeholder"}
+        for field in ("summary", "created", "updated", "status"):
+            item[field] = assessment[field].get("$")
 
         try:
-            item['resolved'] = assessment['resolved'].get('$')
+            item["resolved"] = assessment["resolved"].get("$")
         except:
             pass
 
-        for node in assessment['customfields']['customfield']:
-            key = node.get('customfieldname').get('$')
+        for node in assessment["customfields"]["customfield"]:
+            key = node.get("customfieldname").get("$")
 
             try:
-                value = node.get('customfieldvalues').get('customfieldvalue').get('$')
+                value = node.get("customfieldvalues").get(
+                    "customfieldvalue").get("$")
             except:
                 value = None
 
-            if key == 'Asmt ID':
-                item['id'] = value
+            if key == "Asmt ID":
+                item["id"] = value
 
             if value != None:
                 item[key] = value
 
-            if key == 'Election':
-                if value == 'Yes':
-                    item['Election'] = True
-                elif value == 'No':
-                    item['Election'] = False
+            if key == "Election":
+                if value == "Yes":
+                    item["Election"] = True
+                elif value == "No":
+                    item["Election"] = False
                 else:
-                    item['Election'] = None
+                    item["Election"] = None
 
-            if key == 'POC Name' or key == 'POC Email' or key == 'POC Phone':
+            if key == "POC Name" or key == "POC Email" or key == "POC Phone":
                 item[key] = None
 
-            if key == 'Requested Services':
+            if key == "Requested Services":
                 try:
                     i = 0
                     services_array = []
-                    while i < len(node.get('customfieldvalues').get('customfieldvalue')):
-                        services_array.append(node.get('customfieldvalues').get('customfieldvalue')[i].get('$'))
-                        i=i+1
+                    while i < len(
+                        node.get("customfieldvalues").get("customfieldvalue")
+                    ):
+                        services_array.append(
+                            node.get("customfieldvalues")
+                            .get("customfieldvalue")[i]
+                            .get("$")
+                        )
+                        i = i + 1
                     item[key] = services_array
                 except:
                     pass
@@ -157,7 +181,7 @@ def convert_xml_to_json(xml_filename, output_filename):
                     item.pop(key, None)
             except:
                 pass
-        item['Operators'] = operator_array
+        item["Operators"] = operator_array
 
         for i in OPERATOR_LIST:
             try:
@@ -167,7 +191,7 @@ def convert_xml_to_json(xml_filename, output_filename):
         data.append(item)
 
     # Write JSON data to output_filename
-    assessment_json = open(output_filename, 'w')
+    assessment_json = open(output_filename, "w")
     assessment_json.write(json.dumps(data))
     assessment_json.close()
 
@@ -190,28 +214,27 @@ def upload_to_s3(bucket_name, output_filename):
 
     """
     # Boto3 client for S3
-    s3 = boto3.client('s3')
+    s3 = boto3.client("s3")
 
     # Upload file to S3 bucket
     s3.upload_file(output_filename, bucket_name, output_filename)
 
-    print('\n\nSuccessfully uploaded JSON to S3 bucket')
+    print("\n\nSuccessfully uploaded JSON to S3 bucket")
 
 
 def main():
     """Call the functions that export data from Jira and upload it to S3."""
     global __doc__
-    __doc__ = re.sub('COMMAND_NAME', __file__, __doc__)
-    args = docopt(__doc__, version='v0.0.1')
+    __doc__ = re.sub("COMMAND_NAME", __file__, __doc__)
+    args = docopt(__doc__, version="v0.0.1")
 
     # Securely create a temporary file to store the XML data in
     temp_xml_file_descriptor, temp_xml_filepath = tempfile.mkstemp()
 
     try:
         export_jira_data(
-            args["--jira-credentials-file"],
-            args["--jira-filter"],
-            temp_xml_filepath)
+            args["--jira-credentials-file"], args["--jira-filter"], temp_xml_filepath
+        )
         convert_xml_to_json(temp_xml_filepath, args["--output-filename"])
         upload_to_s3(args["--s3-bucket"], args["--output-filename"])
     finally:
@@ -220,5 +243,5 @@ def main():
         os.remove(f"{temp_xml_filepath}")
 
 
-if __name__=='__main__':
+if __name__ == "__main__":
     main()
