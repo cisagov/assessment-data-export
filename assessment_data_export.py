@@ -41,12 +41,12 @@ import os
 import re
 import subprocess
 import tempfile
+from xml.etree import ElementTree
 
 # Third-party libraries (install with pip)
 import boto3
 from docopt import docopt
 from xmljson import badgerfish as bf
-from xml.etree import ElementTree
 
 
 def export_jira_data(jira_credentials_file, jira_filter, xml_filename):
