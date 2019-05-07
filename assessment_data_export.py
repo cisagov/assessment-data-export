@@ -30,6 +30,7 @@ Options:
 """
 
 # Standard libraries
+from collections import OrderedDict
 import json
 import os
 import re
@@ -41,18 +42,6 @@ import boto3
 from docopt import docopt
 from xmljson import badgerfish as bf
 from xml.etree import ElementTree
-
-OPERATOR_LIST = [
-    "Operator01",
-    "Operator02",
-    "Operator03",
-    "Operator04",
-    "Operator05",
-    "Operator06",
-    "Operator07",
-    "Operator08",
-    "Operator09",
-]
 
 
 def export_jira_data(jira_credentials_file, jira_filter, xml_filename):
@@ -114,86 +103,77 @@ def convert_xml_to_json(xml_filename, output_filename):
 
     """
     # Open XML file and grab the data
-    xml_string = open(xml_filename, "r")
-    data = bf.data(ElementTree.fromstring(xml_string.read()))
-    assessment_data = data["rss"]["channel"]["item"]
+    xml_handle = open(xml_filename, "r")
+    xml_data = bf.data(ElementTree.fromstring(xml_handle.read()))
+    assessment_data = xml_data["rss"]["channel"]["item"]
+    all_assessments_json = []
+
+    # RegEx for OperatorXX customfieldnames
+    operator_regex = re.compile("^Operator[0-9]{2}[:.,-]?$")
 
     # Iterate through XML data and build JSON data
-    data = []
     for assessment in assessment_data:
-        item = {"id": "placeholder"}
+        assessment_json = {
+            'Requested Services': [],
+            'Operators': []
+        }
+
+        # Grab data from key required fields
         for field in ("summary", "created", "updated", "status"):
-            item[field] = assessment[field].get("$")
+            assessment_json[field] = assessment[field].get("$")
 
-        try:
-            item["resolved"] = assessment["resolved"].get("$")
-        except:
-            pass
+        # Grab optional "resolved" data
+        if assessment.get("resolved"):
+            assessment_json["resolved"] = assessment["resolved"].get("$")
 
+        # Process custom field data
         for node in assessment["customfields"]["customfield"]:
             key = node.get("customfieldname").get("$")
+            custom_field_values = node.get("customfieldvalues", {}).get(
+                "customfieldvalue")
 
-            try:
-                value = node.get("customfieldvalues").get(
-                    "customfieldvalue").get("$")
-            except:
-                value = None
-
+            # Make the Assessment ID our primary id
             if key == "Asmt ID":
-                item["id"] = value
-
-            if value != None:
-                item[key] = value
-
-            if key == "Election":
+                assessment_json["id"] = custom_field_values.get("$")
+            # Turn Election value into a true boolean
+            elif key == "Election":
+                value = custom_field_values.get("$")
                 if value == "Yes":
-                    item["Election"] = True
+                    assessment_json["Election"] = True
                 elif value == "No":
-                    item["Election"] = False
+                    assessment_json["Election"] = False
                 else:
-                    item["Election"] = None
-
-            if key == "POC Name" or key == "POC Email" or key == "POC Phone":
-                item[key] = None
-
-            if key == "Requested Services":
+                    assessment_json["Election"] = None
+            # Gobble up POC info; we don't want to pass it on
+            elif key in ["POC Name", "POC Email", "POC Phone"]:
+                assessment_json[key] = None
+            # Build the list of Requested Services
+            elif key == "Requested Services":
+                if type(custom_field_values) == OrderedDict:
+                    # There's only one requested service
+                    assessment_json['Requested Services'].append(
+                        custom_field_values.get("$"))
+                elif type(custom_field_values) == list:
+                    # There are multiple requested services
+                    for service in custom_field_values:
+                        assessment_json['Requested Services'].append(service.get("$"))
+            # Build the list of Operators
+            elif operator_regex.match(key):
+                assessment_json["Operators"].append(custom_field_values.get('$'))
+            else:
                 try:
-                    i = 0
-                    services_array = []
-                    while i < len(
-                        node.get("customfieldvalues").get("customfieldvalue")
-                    ):
-                        services_array.append(
-                            node.get("customfieldvalues")
-                            .get("customfieldvalue")[i]
-                            .get("$")
-                        )
-                        i = i + 1
-                    item[key] = services_array
-                except:
+                    # Grab as many other custom fields as we can
+                    assessment_json[key] = custom_field_values.get('$')
+                except AttributeError:
+                    # If we want any fields that end up here, we will have
+                    # to add elif clauses for them above
                     pass
-
-        operator_array = []
-        for field in OPERATOR_LIST:
-            try:
-                if item[field]:
-                    operator_array.append(item[field])
-                    item.pop(key, None)
-            except:
-                pass
-        item["Operators"] = operator_array
-
-        for i in OPERATOR_LIST:
-            try:
-                del item[i]
-            except:
-                pass
-        data.append(item)
+        all_assessments_json.append(assessment_json)
 
     # Write JSON data to output_filename
-    assessment_json = open(output_filename, "w")
-    assessment_json.write(json.dumps(data))
-    assessment_json.close()
+    assessment_json_file = open(output_filename, "w")
+    assessment_json_file.write(json.dumps(all_assessments_json))
+    assessment_json_file.close()
 
 
 def upload_to_s3(bucket_name, output_filename):
