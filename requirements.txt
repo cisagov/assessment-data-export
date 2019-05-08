@@ -1,5 +1,1 @@
-boto3
-docopt
-python-dateutil
-requests
-xmljson
+-e .
