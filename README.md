@@ -24,7 +24,7 @@ my_jira_password
 Issue the following command to run the script:
 
 ```bash
-./assessment_data_export.py --jira-base-url=https://my-jira-server
+src/ade/assessment_data_export.py --jira-base-url=https://my-jira-server
 --jira-credentials-file=my_jira_creds.txt --jira-filter=12345
 --s3-bucket=my-bucket --output-filename=assessment-data.json
 ```
