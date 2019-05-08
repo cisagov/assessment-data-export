@@ -1,5 +1,7 @@
 # assessment-data-export 🚀 #
 
+[![Build Status](https://travis-ci.com/cisagov/assessment-data-export.svg?branch=develop)](https://travis-ci.com/cisagov/assessment-data-export)
+[![Coverage Status](https://coveralls.io/repos/github/cisagov/assessment-data-export/badge.svg?branch=develop)](https://coveralls.io/github/cisagov/assessment-data-export?branch=develop)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/cisagov/assessment-data-export.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/cisagov/assessment-data-export/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/cisagov/assessment-data-export.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/cisagov/assessment-data-export/context:python)
 
