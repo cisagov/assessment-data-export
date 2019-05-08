@@ -231,8 +231,64 @@ def upload_to_s3(bucket_name, output_filename):
     return True
 
 
+def assessment_data_export(
+    jira_base_url, jira_credentials_file, jira_filter, s3_bucket, output_filename
+):
+    """Export assessment data from Jira and upload it to an S3 bucket.
+
+    Parameters
+    ----------
+    jira_base_url: str
+        The base URL of the Jira server that houses the assessment data.
+
+    jira_credentials_file : str
+        The text file containing the username and password for the Jira
+        account with access to the specified Jira FILTER.
+        File format:
+        username
+        password
+
+    jira_filter : str
+        The ID of the Jira filter that produces the desired XML assessment
+        data output.
+
+    s3_bucket : str
+        The name of the target S3 bucket.
+
+    output_filename : str
+        The name of the assessment data JSON object to create in the
+        target S3 bucket.
+
+    Returns
+    -------
+    bool : Returns a boolean indicating if the assessment data export was
+    successful.
+
+    """
+    # Securely create a temporary file to store the XML data in
+    temp_xml_file_descriptor, temp_xml_filepath = tempfile.mkstemp()
+
+    try:
+        if not export_jira_data(
+            jira_base_url, jira_credentials_file, jira_filter, temp_xml_filepath
+        ):
+            logging.critical("Exiting here!")
+            return False
+        if not convert_xml_to_json(temp_xml_filepath, output_filename):
+            logging.critical("Exiting here!")
+            return False
+        if not upload_to_s3(s3_bucket, output_filename):
+            logging.critical("Exiting here!")
+            return False
+    finally:
+        # Delete local temp XML data file regardless of whether or not
+        # any exceptions were thrown in the try block above
+        os.remove(f"{temp_xml_filepath}")
+        return True
+
+
 def main():
-    """Call the functions that export data from Jira and upload it to S3."""
+    """Call the function that exports data from Jira and uploads it to S3."""
     global __doc__
     __doc__ = re.sub("COMMAND_NAME", __file__, __doc__)
     args = docopt(__doc__, version="v0.0.1")
@@ -250,32 +306,18 @@ def main():
         )
         return 1
 
-    # Securely create a temporary file to store the XML data in
-    temp_xml_file_descriptor, temp_xml_filepath = tempfile.mkstemp()
+    success = assessment_data_export(
+        args["--jira-base-url"],
+        args["--jira-credentials-file"],
+        args["--jira-filter"],
+        args["--s3-bucket"],
+        args["--output-filename"],
+    )
 
-    try:
-        if not export_jira_data(
-            args["--jira-base-url"],
-            args["--jira-credentials-file"],
-            args["--jira-filter"],
-            temp_xml_filepath,
-        ):
-            logging.critical("Exiting here!")
-            return False
-        if not convert_xml_to_json(temp_xml_filepath, args["--output-filename"]):
-            logging.critical("Exiting here!")
-            return False
-        if not upload_to_s3(args["--s3-bucket"], args["--output-filename"]):
-            logging.critical("Exiting here!")
-            return False
-        return True
-    finally:
-        # Delete local temp XML data file regardless of whether or not
-        # any exceptions were thrown in the try block above
-        os.remove(f"{temp_xml_filepath}")
+    # Stop logging and clean up
+    logging.shutdown()
 
-        # Stop logging and clean up
-        logging.shutdown()
+    return success
 
 
 if __name__ == "__main__":
