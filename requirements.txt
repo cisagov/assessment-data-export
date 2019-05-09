@@ -1,6 +1,1 @@
-boto3
-docopt
-https://github.com/cisagov/mongo-db-from-config/tarball/develop
-python-dateutil
-requests
-xmljson
+-e .
