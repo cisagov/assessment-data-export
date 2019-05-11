@@ -138,7 +138,7 @@ def convert_xml_to_json(xml_filename, output_filename):
 
     # Iterate through XML data and build JSON data
     for assessment in assessment_data:
-        assessment_json = {"Requested Services": [], "Operators": []}
+        assessment_json = {"Requested Services": [], "Operators": [], "CI Type": []}
 
         # Grab data from key required fields
         for field in ("summary", "created", "updated", "status"):
@@ -184,6 +184,11 @@ def convert_xml_to_json(xml_filename, output_filename):
             # Build the list of Operators
             elif operator_regex.match(key):
                 assessment_json["Operators"].append(custom_field_values.get("$"))
+            # Build the list of CI Types
+            elif key == "CI Type":
+                assessment_json["CI Type"] = [
+                    i.strip() for i in custom_field_values.get("$").split(",")
+                ]
             else:
                 try:
                     # Grab as many other custom fields as we can
