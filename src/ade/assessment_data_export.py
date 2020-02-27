@@ -50,6 +50,8 @@ from docopt import docopt
 import requests
 from xmljson import badgerfish as bf
 
+from ._version import __version__
+
 
 def export_jira_data(jira_base_url, jira_credentials_file, jira_filter, xml_filename):
     """Export XML assessment data from Jira to a file.
@@ -236,7 +238,7 @@ def upload_to_s3(bucket_name, output_filename):
     return True
 
 
-def assessment_data_export(
+def export_assessment_data(
     jira_base_url, jira_credentials_file, jira_filter, s3_bucket, output_filename
 ):
     """Export assessment data from Jira and upload it to an S3 bucket.
@@ -296,7 +298,7 @@ def main():
     """Call the function that exports data from Jira and uploads it to S3."""
     global __doc__
     __doc__ = re.sub("COMMAND_NAME", __file__, __doc__)
-    args = docopt(__doc__, version="v0.0.1")
+    args = docopt(__doc__, version=__version__)
 
     # Set up logging
     log_level = args["--log-level"]
@@ -311,7 +313,7 @@ def main():
         )
         return 1
 
-    success = assessment_data_export(
+    success = export_assessment_data(
         args["--jira-base-url"],
         args["--jira-credentials-file"],
         args["--jira-filter"],
