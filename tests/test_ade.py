@@ -7,8 +7,10 @@ import sys
 from unittest.mock import patch
 
 # Third-Party Libraries
-import ade
 import pytest
+
+# cisagov Libraries
+import ade
 
 # define sources of versions trings
 RELEASE_TAG = os.getenv("RELEASE_TAG")
