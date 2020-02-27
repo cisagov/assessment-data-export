@@ -96,7 +96,13 @@ def export_jira_data(jira_base_url, jira_credentials_file, jira_filter, xml_file
     # Export XML data from Jira
     try:
         response = requests.get(
-            jira_url, auth=(jira_username, jira_password), verify=False  # nosec
+            jira_url,
+            auth=(jira_username, jira_password),
+            # We need to add a nosec tag here because we are manually disabling
+            # certificate verification. We have to do this because the requests
+            # package is unable to verify the certificate used by the Jira
+            # server.
+            verify=False,  # nosec
         )
 
         with open(xml_filename, "w") as xml_output:
