@@ -35,17 +35,17 @@ Options:
                                 [default: warning]
 """
 
-# Standard libraries
+# Standard Python Libraries
 from collections import OrderedDict
 import json
 import logging
 import os
 import re
 import tempfile
-from xml.etree import ElementTree
 
-# Third-party libraries (install with pip)
+# Third-Party Libraries
 import boto3
+from defusedxml import ElementTree
 from docopt import docopt
 import requests
 from xmljson import badgerfish as bf
@@ -94,7 +94,7 @@ def export_jira_data(jira_base_url, jira_credentials_file, jira_filter, xml_file
     # Export XML data from Jira
     try:
         response = requests.get(
-            jira_url, auth=(jira_username, jira_password), verify=False
+            jira_url, auth=(jira_username, jira_password), verify=False  # nosec
         )
 
         with open(xml_filename, "w") as xml_output:
