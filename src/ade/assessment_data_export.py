@@ -35,20 +35,22 @@ Options:
                                 [default: warning]
 """
 
-# Standard libraries
+# Standard Python Libraries
 from collections import OrderedDict
 import json
 import logging
 import os
 import re
 import tempfile
-from xml.etree import ElementTree
 
-# Third-party libraries (install with pip)
+# Third-Party Libraries
 import boto3
+from defusedxml import ElementTree
 from docopt import docopt
 import requests
 from xmljson import badgerfish as bf
+
+from ._version import __version__
 
 
 def export_jira_data(jira_base_url, jira_credentials_file, jira_filter, xml_filename):
@@ -94,7 +96,13 @@ def export_jira_data(jira_base_url, jira_credentials_file, jira_filter, xml_file
     # Export XML data from Jira
     try:
         response = requests.get(
-            jira_url, auth=(jira_username, jira_password), verify=False
+            jira_url,
+            auth=(jira_username, jira_password),
+            # We need to add a nosec tag here because we are manually disabling
+            # certificate verification. We have to do this because the requests
+            # package is unable to verify the certificate used by the Jira
+            # server.
+            verify=False,  # nosec
         )
 
         with open(xml_filename, "w") as xml_output:
@@ -236,7 +244,7 @@ def upload_to_s3(bucket_name, output_filename):
     return True
 
 
-def assessment_data_export(
+def export_assessment_data(
     jira_base_url, jira_credentials_file, jira_filter, s3_bucket, output_filename
 ):
     """Export assessment data from Jira and upload it to an S3 bucket.
@@ -296,7 +304,7 @@ def main():
     """Call the function that exports data from Jira and uploads it to S3."""
     global __doc__
     __doc__ = re.sub("COMMAND_NAME", __file__, __doc__)
-    args = docopt(__doc__, version="v0.0.1")
+    args = docopt(__doc__, version=__version__)
 
     # Set up logging
     log_level = args["--log-level"]
@@ -311,7 +319,7 @@ def main():
         )
         return 1
 
-    success = assessment_data_export(
+    success = export_assessment_data(
         args["--jira-base-url"],
         args["--jira-credentials-file"],
         args["--jira-filter"],

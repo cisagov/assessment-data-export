@@ -8,15 +8,17 @@ Based on:
 - https://blog.ionelmc.ro/2014/05/25/python-packaging/#the-structure
 """
 
+# Standard Python Libraries
 from glob import glob
-from os.path import splitext, basename
+from os.path import basename, splitext
 
-from setuptools import setup, find_packages
+# Third-Party Libraries
+from setuptools import find_packages, setup
 
 
 def readme():
     """Read in and return the contents of the project's README.md file."""
-    with open("README.md") as f:
+    with open("README.md", encoding="utf-8") as f:
         return f.read()
 
 
@@ -59,15 +61,38 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
     ],
+    python_requires=">=3.6",
     # What does your project relate to?
     keywords=["ade", "assessment", "export"],
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     py_modules=[splitext(basename(path))[0] for path in glob("src/*.py")],
     include_package_data=True,
-    install_requires=["boto3", "docopt", "python-dateutil", "requests", "xmljson"],
-    extras_require={"test": ["pre-commit", "pytest", "pytest-cov", "coveralls"]},
+    install_requires=[
+        "boto3",
+        "defusedxml",
+        "docopt",
+        "requests",
+        "setuptools >= 24.2.0",
+        "xmljson",
+    ],
+    extras_require={
+        "test": [
+            "pre-commit",
+            # coveralls 1.11.0 added a service number for calls from
+            # GitHub Actions. This caused a regression which resulted in a 422
+            # response from the coveralls API with the message:
+            # Unprocessable Entity for url: https://coveralls.io/api/v1/jobs
+            # 1.11.1 fixed this issue, but to ensure expected behavior we'll pin
+            # to never grab the regression version.
+            "coveralls != 1.11.0",
+            "coverage",
+            "pytest-cov",
+            "pytest",
+        ]
+    },
     # Conveniently allows one to run the CLI tool as `ade`
     entry_points={"console_scripts": ["ade = ade.assessment_data_export:main"]},
 )
