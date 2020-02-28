@@ -2,6 +2,7 @@
 """Tests for ade."""
 
 # Standard Python Libraries
+from collections import OrderedDict
 import os
 import sys
 from unittest.mock import patch
@@ -36,6 +37,26 @@ def test_release_version():
     assert (
         RELEASE_TAG == f"v{PROJECT_VERSION}"
     ), "RELEASE_TAG does not match the project version"
+
+
+def test_field_values_to_list_single_value():
+    """Test a single value being passed."""
+    test_value = OrderedDict([("@key", 12345), ("$", "Single Value")])
+    result = ade.assessment_data_export.field_values_to_list(test_value)
+    assert len(result) == 1
+    assert result[0] == "Single Value"
+
+
+def test_field_values_to_list_multiple_values():
+    """Test when multiple values in a list are passed."""
+    test_value = [
+        OrderedDict([("@key", 12345), ("$", "First Value")]),
+        OrderedDict([("@key", 23456), ("$", "Second Value")]),
+    ]
+    result = ade.assessment_data_export.field_values_to_list(test_value)
+    assert len(result) == 2
+    assert result[0] == "First Value"
+    assert result[1] == "Second Value"
 
 
 # More coming soon maybe!
