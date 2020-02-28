@@ -164,7 +164,7 @@ def convert_xml_to_json(xml_filename, output_filename):
 
     # Iterate through XML data and build JSON data
     for assessment in assessment_data:
-        assessment_json = {"Requested Services": [], "Operators": [], "CI Type": []}
+        assessment_json = {"Requested Services": [], "Operators": []}
 
         # Grab data from key required fields
         for field in ("summary", "created", "updated", "status"):
@@ -184,6 +184,9 @@ def convert_xml_to_json(xml_filename, output_filename):
             # Make the Assessment ID our primary id
             if key == "Asmt ID":
                 assessment_json["id"] = custom_field_values.get("$")
+            # Build the list of CI Systems
+            elif key == "CI Systems":
+                assessment_json[key] = field_values_to_list(custom_field_values)
             # Turn Election value into a true boolean
             elif key == "Election":
                 value = custom_field_values.get("$")
@@ -193,6 +196,9 @@ def convert_xml_to_json(xml_filename, output_filename):
                     assessment_json["Election"] = False
                 else:
                     assessment_json["Election"] = None
+            # Build the list of Operators
+            elif operator_regex.match(key):
+                assessment_json["Operators"].append(custom_field_values.get("$"))
             # Gobble up POC info; we don't want to pass it on
             elif key in ["POC Name", "POC Email", "POC Phone"]:
                 assessment_json[key] = None
@@ -207,14 +213,6 @@ def convert_xml_to_json(xml_filename, output_filename):
                     # There are multiple requested services
                     for service in custom_field_values:
                         assessment_json["Requested Services"].append(service.get("$"))
-            # Build the list of Operators
-            elif operator_regex.match(key):
-                assessment_json["Operators"].append(custom_field_values.get("$"))
-            # Build the list of CI Types
-            elif key == "CI Type":
-                assessment_json["CI Type"] = [
-                    i.strip() for i in custom_field_values.get("$").split(",")
-                ]
             elif key == "Testing Phase":
                 assessment_json[key] = field_values_to_list(custom_field_values)
             else:
