@@ -53,6 +53,24 @@ from xmljson import badgerfish as bf
 from ._version import __version__
 
 
+def field_values_to_list(field_values):
+    """Convert provided field values to a list of strings.
+
+    Parameters
+    ----------
+    field_values: OrderedDict or List[OrderedDict]
+        The raw field values from the xml parser.
+
+    Returns
+    -------
+    List[str] : Returns the values for the field as a list.
+    """
+    if not isinstance(field_values, list):
+        field_values = [field_values]
+
+    return [v.get("$") for v in field_values]
+
+
 def export_jira_data(jira_base_url, jira_credentials_file, jira_filter, xml_filename):
     """Export XML assessment data from Jira to a file.
 
@@ -197,6 +215,8 @@ def convert_xml_to_json(xml_filename, output_filename):
                 assessment_json["CI Type"] = [
                     i.strip() for i in custom_field_values.get("$").split(",")
                 ]
+            elif key == "Testing Phase":
+                assessment_json[key] = field_values_to_list(custom_field_values)
             else:
                 try:
                     # Grab as many other custom fields as we can
