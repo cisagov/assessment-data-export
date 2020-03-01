@@ -36,7 +36,6 @@ Options:
 """
 
 # Standard Python Libraries
-from collections import OrderedDict
 import json
 import logging
 import os
@@ -159,12 +158,18 @@ def convert_xml_to_json(xml_filename, output_filename):
     assessment_data = xml_data["rss"]["channel"]["item"]
     all_assessments_json = []
 
+    # list of field types that may have multiple values
+    multi_fields = [
+        "com.atlassian.jira.plugin.system.customfieldtypes:multicheckboxes",
+        "com.atlassian.jira.plugin.system.customfieldtypes:multiselect",
+    ]
+
     # RegEx for OperatorXX customfieldnames
     operator_regex = re.compile("^Operator[0-9]{2}[:.,-]?$")
 
     # Iterate through XML data and build JSON data
     for assessment in assessment_data:
-        assessment_json = {"Requested Services": [], "Operators": []}
+        assessment_json = {"Operators": []}
 
         # Grab data from key required fields
         for field in ("summary", "created", "updated", "status"):
@@ -176,6 +181,7 @@ def convert_xml_to_json(xml_filename, output_filename):
 
         # Process custom field data
         for node in assessment["customfields"]["customfield"]:
+            field_type = node.get("@key")
             key = node.get("customfieldname").get("$")
             custom_field_values = node.get("customfieldvalues", {}).get(
                 "customfieldvalue"
@@ -184,9 +190,6 @@ def convert_xml_to_json(xml_filename, output_filename):
             # Make the Assessment ID our primary id
             if key == "Asmt ID":
                 assessment_json["id"] = custom_field_values.get("$")
-            # Build the list of CI Systems
-            elif key == "CI Systems":
-                assessment_json[key] = field_values_to_list(custom_field_values)
             # Turn Election value into a true boolean
             elif key == "Election":
                 value = custom_field_values.get("$")
@@ -202,18 +205,8 @@ def convert_xml_to_json(xml_filename, output_filename):
             # Gobble up POC info; we don't want to pass it on
             elif key in ["POC Name", "POC Email", "POC Phone"]:
                 assessment_json[key] = None
-            # Build the list of Requested Services
-            elif key == "Requested Services":
-                if type(custom_field_values) == OrderedDict:
-                    # There's only one requested service
-                    assessment_json["Requested Services"].append(
-                        custom_field_values.get("$")
-                    )
-                elif type(custom_field_values) == list:
-                    # There are multiple requested services
-                    for service in custom_field_values:
-                        assessment_json["Requested Services"].append(service.get("$"))
-            elif key == "Testing Phase":
+            # Handle any fields that may have multiple values.
+            elif field_type in multi_fields:
                 assessment_json[key] = field_values_to_list(custom_field_values)
             else:
                 try:
