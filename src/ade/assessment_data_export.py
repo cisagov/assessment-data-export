@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """assessment_data_export: A tool for exporting assessment data.
 
 The source of the assessment data is Jira.
@@ -342,7 +340,3 @@ def main():
     logging.shutdown()
 
     return success
-
-
-if __name__ == "__main__":
-    main()
