@@ -38,6 +38,7 @@ import json
 import logging
 import os
 import re
+import sys
 import tempfile
 
 # Third-Party Libraries
@@ -326,7 +327,7 @@ def main():
             f'"{log_level}" is not a valid logging level.  Possible values '
             "are debug, info, warning, error, and critical."
         )
-        return 1
+        sys.exit(1)
 
     success = export_assessment_data(
         args["--jira-base-url"],
@@ -339,4 +340,5 @@ def main():
     # Stop logging and clean up
     logging.shutdown()
 
-    return success
+    if not success:
+        sys.exit(1)
