@@ -43,10 +43,16 @@ import tempfile
 
 # Third-Party Libraries
 import boto3
-from defusedxml import ElementTree
+
+# I cannot find a package that includes type stubs for defusedxml, so use
+# "type: ignore" to tell mypy to ignore this library
+from defusedxml import ElementTree  # type: ignore
 from docopt import docopt
 import requests
-from xmljson import badgerfish as bf
+
+# I cannot find a package that includes type stubs for xmljson, so use
+# "type: ignore" to tell mypy to ignore this library
+from xmljson import badgerfish as bf  # type: ignore
 
 from ._version import __version__
 
