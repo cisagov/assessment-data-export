@@ -119,6 +119,7 @@ repos:
           - boto3-stubs
           - types-docopt
           - types-requests
+          - types-setuptools
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.3.1
     hooks:

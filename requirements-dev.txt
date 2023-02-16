@@ -5,3 +5,4 @@ mypy
 semver
 types-docopt
 types-requests
+types-setuptools
