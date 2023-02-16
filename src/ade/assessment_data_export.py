@@ -43,10 +43,16 @@ import tempfile
 
 # Third-Party Libraries
 import boto3
-from defusedxml import ElementTree
+
+# I cannot find a package that includes type stubs for defusedxml, so use
+# "type: ignore" to tell mypy to ignore this library
+from defusedxml import ElementTree  # type: ignore
 from docopt import docopt
 import requests
-from xmljson import badgerfish as bf
+
+# I cannot find a package that includes type stubs for xmljson, so use
+# "type: ignore" to tell mypy to ignore this library
+from xmljson import badgerfish as bf  # type: ignore
 
 from ._version import __version__
 
@@ -98,7 +104,7 @@ def export_jira_data(jira_base_url, jira_credentials_file, jira_filter, xml_file
 
     """
     # Grab Jira credentials from jira_credentials_file
-    f = open(jira_credentials_file, "r")
+    f = open(jira_credentials_file)
     lines = f.readlines()
     jira_username = lines[0].rstrip()
     jira_password = lines[1].rstrip()
@@ -152,7 +158,7 @@ def convert_xml_to_json(xml_filename, output_filename):
 
     """
     # Open XML file and grab the data
-    xml_handle = open(xml_filename, "r")
+    xml_handle = open(xml_filename)
     xml_data = bf.data(ElementTree.fromstring(xml_handle.read()))
     assessment_data = xml_data["rss"]["channel"]["item"]
     all_assessments_json = []

@@ -1,9 +1,8 @@
 # assessment-data-export 🚀 #
 
 [![GitHub Build Status](https://github.com/cisagov/assessment-data-export/workflows/build/badge.svg)](https://github.com/cisagov/assessment-data-export/actions)
+[![CodeQL](https://github.com/cisagov/assessment-data-export/workflows/CodeQL/badge.svg)](https://github.com/cisagov/assessment-data-export/actions/workflows/codeql-analysis.yml)
 [![Coverage Status](https://coveralls.io/repos/github/cisagov/assessment-data-export/badge.svg?branch=develop)](https://coveralls.io/github/cisagov/assessment-data-export?branch=develop)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/cisagov/assessment-data-export.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/cisagov/assessment-data-export/alerts/)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/cisagov/assessment-data-export.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/cisagov/assessment-data-export/context:python)
 [![Known Vulnerabilities](https://snyk.io/test/github/cisagov/assessment-data-export/develop/badge.svg)](https://snyk.io/test/github/cisagov/assessment-data-export)
 
 `assessment-data-export` contains code to export assessment data from a Jira

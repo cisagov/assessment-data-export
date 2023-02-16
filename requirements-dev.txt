@@ -1,4 +1,8 @@
 --requirement requirements-test.txt
+boto3-stubs
 ipython
 mypy
 semver
+types-docopt
+types-requests
+types-setuptools
